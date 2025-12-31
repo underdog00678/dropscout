@@ -157,6 +157,7 @@ const baseScores: ScoreBreakdown = {
   shipping: 5,
   trend: 5,
   brandability: 5,
+  total: 50,
 };
 
 const clampScore = (value: number) =>
@@ -223,6 +224,7 @@ export function validateProduct(input: ValidationInput): ValidationResult {
         shipping: 0,
         trend: 0,
         brandability: 0,
+        total: 0,
       },
       warnings: ["Provide a clear product description or URL."],
       reasons: ["Insufficient information to score the product fairly."],
@@ -321,7 +323,7 @@ export function validateProduct(input: ValidationInput): ValidationResult {
     addUnique(warnings, "Seasonal demand may limit year-round sales.");
   }
 
-  const finalScores: ScoreBreakdown = {
+  const finalScoresBase = {
     demand: clampScore(scores.demand),
     competition: clampScore(scores.competition),
     margin: clampScore(scores.margin),
@@ -330,45 +332,50 @@ export function validateProduct(input: ValidationInput): ValidationResult {
     brandability: clampScore(scores.brandability),
   };
 
-  if (finalScores.competition >= 7) {
+  if (finalScoresBase.competition >= 7) {
     addUnique(reasons, "Competition looks crowded for this category.");
   }
-  if (finalScores.margin <= 3) {
+  if (finalScoresBase.margin <= 3) {
     addUnique(reasons, "Margins look too thin to absorb ad and shipping costs.");
     addUnique(warnings, "Margin viability is a major risk.");
   }
-  if (finalScores.shipping >= 7) {
+  if (finalScoresBase.shipping >= 7) {
     addUnique(reasons, "Shipping risk is high relative to typical products.");
     addUnique(warnings, "Shipping risk could lead to returns or damage.");
   }
-  if (finalScores.trend <= 3) {
+  if (finalScoresBase.trend <= 3) {
     addUnique(reasons, "Trend health appears unstable or short-lived.");
   }
-  if (finalScores.demand <= 3) {
+  if (finalScoresBase.demand <= 3) {
     addUnique(reasons, "Demand signals appear weak based on the description.");
   }
-  if (finalScores.demand >= 7) {
+  if (finalScoresBase.demand >= 7) {
     addUnique(reasons, "Demand signals look strong for this idea.");
   }
-  if (finalScores.brandability >= 7) {
+  if (finalScoresBase.brandability >= 7) {
     addUnique(reasons, "Brandability looks strong for a focused audience.");
   }
 
   const fatalCombination =
-    finalScores.margin <= 3 &&
-    finalScores.shipping >= 7 &&
-    finalScores.competition >= 7;
+    finalScoresBase.margin <= 3 &&
+    finalScoresBase.shipping >= 7 &&
+    finalScoresBase.competition >= 7;
 
-  const normalizedCompetition = 10 - finalScores.competition;
-  const normalizedShipping = 10 - finalScores.shipping;
+  const normalizedCompetition = 10 - finalScoresBase.competition;
+  const normalizedShipping = 10 - finalScoresBase.shipping;
   const overallScore =
-    (finalScores.demand +
-      finalScores.margin +
-      finalScores.trend +
-      finalScores.brandability +
+    (finalScoresBase.demand +
+      finalScoresBase.margin +
+      finalScoresBase.trend +
+      finalScoresBase.brandability +
       normalizedCompetition +
       normalizedShipping) /
     6;
+  const totalScore = Math.max(0, Math.min(100, Math.round(overallScore * 10)));
+  const finalScores: ScoreBreakdown = {
+    ...finalScoresBase,
+    total: totalScore,
+  };
 
   let decision: ValidationResult["decision"] = "yellow";
   if (fatalCombination || overallScore < 4.5) {

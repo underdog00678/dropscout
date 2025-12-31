@@ -7,6 +7,7 @@ export type ScoreBreakdown = {
   shipping: number;
   trend: number;
   brandability: number;
+  total: number;
 };
 
 export type ValidationResult = {
