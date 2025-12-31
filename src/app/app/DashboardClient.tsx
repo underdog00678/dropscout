@@ -50,6 +50,7 @@ const scoreLabels: Array<{
 export default function DashboardClient() {
   const [productText, setProductText] = useState("");
   const [result, setResult] = useState<ValidationResult | null>(null);
+  const [validatedText, setValidatedText] = useState<string | null>(null);
   const [library, setLibrary] = useState<SavedProduct[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saved">("idle");
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
@@ -67,6 +68,7 @@ export default function DashboardClient() {
   const normalizedText = productText.trim();
   const normalizedKey = normalizedText.toLowerCase();
   const loadId = searchParams.get("load");
+  const scoreOutOf10 = result ? (result.scores.total / 10).toFixed(1) : null;
   const alreadySaved =
     normalizedKey.length > 0 &&
     library.some(
@@ -131,6 +133,7 @@ export default function DashboardClient() {
             productText: saved.productText,
           }),
         );
+        setValidatedText(saved.productText);
         setLoadMessage("Loaded saved validation from your library.");
       } catch {
         setLoadMessage(
@@ -145,6 +148,14 @@ export default function DashboardClient() {
   useEffect(() => {
     setSaveState("idle");
   }, [normalizedKey, result]);
+
+  useEffect(() => {
+    if (!result || validatedText === null) return;
+    if (productText !== validatedText) {
+      setResult(null);
+      setValidatedText(null);
+    }
+  }, [productText, result, validatedText]);
 
   useEffect(() => {
     return () => {
@@ -168,11 +179,13 @@ export default function DashboardClient() {
   };
 
   const handleValidate = () => {
-    setResult(
-      validateProduct({
-        productText: normalizedText,
-      }),
-    );
+    const validation = validateProduct({
+      productText: normalizedText,
+    });
+    console.log("VALIDATION RESULT", validation);
+    console.log("TOTAL SCORE", validation.scores.total);
+    setResult(validation);
+    setValidatedText(productText);
   };
 
   const handleSave = async () => {
@@ -234,6 +247,7 @@ export default function DashboardClient() {
         productText: example,
       }),
     );
+    setValidatedText(example);
     handleOnboarded();
   };
   return (
@@ -364,6 +378,15 @@ export default function DashboardClient() {
                 {result.summary}
               </div>
 
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Overall score
+                </span>
+                <span className="text-lg font-semibold text-slate-900">
+                  {scoreOutOf10 !== null ? `${scoreOutOf10}/10` : "—"}
+                </span>
+              </div>
+
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
@@ -441,6 +464,26 @@ export default function DashboardClient() {
           )}
         </section>
       </div>
+      <details className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+        <summary className="cursor-pointer font-semibold uppercase tracking-[0.2em] text-slate-500">
+          Debug
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div>
+            <span className="font-semibold text-slate-700">Input string:</span>{" "}
+            {productText || "—"}
+          </div>
+          <div>
+            <span className="font-semibold text-slate-700">
+              Displayed score:
+            </span>{" "}
+            {scoreOutOf10 !== null ? `${scoreOutOf10}/10` : "—"}
+          </div>
+          <pre className="whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-600">
+            {result ? JSON.stringify(result, null, 2) : "No result yet."}
+          </pre>
+        </div>
+      </details>
       {toastMessage ? <Toast message={toastMessage} /> : null}
       <UpgradeModal
         open={showUpgradeModal}
