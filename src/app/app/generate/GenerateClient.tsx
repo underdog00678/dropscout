@@ -74,14 +74,6 @@ export default function GenerateClient() {
   const loadId = searchParams.get("load");
   const loadText = searchParams.get("text");
 
-  console.log("GEN-LOAD-DEBUG: GenerateClient rendered", {
-    loadId,
-    path:
-      typeof window !== "undefined"
-        ? `${window.location.pathname}${window.location.search}`
-        : "ssr",
-  });
-
   const generateGate = canGenerateNow(10);
   const generateDisabled = !generateGate.ok;
 
@@ -396,9 +388,6 @@ export default function GenerateClient() {
 
   return (
     <div className="space-y-10">
-      <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-        GEN-LOAD-DEBUG: loadId={loadId ?? "none"}
-      </div>
       <header className="space-y-3">
         <div className="text-[11px] text-slate-500">
           loadId: {loadId ?? "—"} · signedIn: {userId ? "true" : "false"} ·
