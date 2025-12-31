@@ -7,8 +7,10 @@ import { canGenerateNow, incrementWeeklyGenerateCount, isPro } from "@/lib/billi
 import { generateListingContent } from "@/lib/generate";
 import { validateProduct } from "@/lib/scoring";
 import { loadLibrary } from "@/lib/storage";
+import { loadCloudLibrary } from "@/lib/cloudLibrary";
 import type { SavedProduct } from "@/lib/storage";
 import type { ValidationResult } from "@/lib/types";
+import { useSupabaseSession } from "@/lib/useSession";
 import UpgradeModal from "@/components/ui/UpgradeModal";
 
 type GeneratedContent = ReturnType<typeof generateListingContent>;
@@ -59,9 +61,26 @@ export default function GenerateClient() {
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+  const [loadDebug, setLoadDebug] = useState<{
+    found: boolean;
+    ids: string[];
+  }>({ found: false, ids: [] });
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLoadingFromLibraryRef = useRef(false);
   const searchParams = useSearchParams();
+  const { session } = useSupabaseSession();
+  const userId = session?.user?.id ?? null;
+  const isDev = process.env.NODE_ENV !== "production";
   const loadId = searchParams.get("load");
+  const loadText = searchParams.get("text");
+
+  console.log("GEN-LOAD-DEBUG: GenerateClient rendered", {
+    loadId,
+    path:
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "ssr",
+  });
 
   const generateGate = canGenerateNow(10);
   const generateDisabled = !generateGate.ok;
@@ -76,19 +95,53 @@ export default function GenerateClient() {
       return;
     }
 
-    const items = loadLibrary();
-    const saved = items.find((item) => item.id === loadId);
-    if (!saved) {
-      setLoadMessage(
-        "We couldn't find that saved product. It may have been deleted.",
-      );
+    const loadFromLibrary = async () => {
+      if (isDev) {
+        console.log("[Generate] loaded from library id", loadId);
+      }
+      try {
+        const items = userId ? await loadCloudLibrary(userId) : loadLibrary();
+        const saved = items.find(
+          (item) => String(item.id) === String(loadId),
+        );
+        setLoadDebug({
+          found: Boolean(saved),
+          ids: items.slice(0, 3).map((item) => String(item.id)),
+        });
+        if (!saved) {
+          setLoadMessage(
+            "Couldn't find that saved product. It may have been deleted.",
+          );
+          return;
+        }
+
+        isLoadingFromLibraryRef.current = true;
+        setProductText(saved.productText);
+        clearGenerated();
+        setLoadMessage("Loaded from Library.");
+        runGeneration(saved.productText);
+        isLoadingFromLibraryRef.current = false;
+      } catch {
+        setLoadMessage("Couldn't find that saved product. Please try again.");
+      }
+    };
+
+    loadFromLibrary();
+  }, [loadId, userId, isDev]);
+
+  useEffect(() => {
+    if (!loadText) {
       return;
     }
-
+    const trimmed = loadText.trim();
+    if (!trimmed) {
+      return;
+    }
     clearGenerated();
-    setProductText(saved.productText);
-    setLoadMessage("Loaded saved product for generation.");
-  }, [loadId]);
+    setProductText(trimmed);
+    setLoadMessage("Loaded product for generation.");
+    runGeneration(trimmed);
+  }, [loadText]);
 
   useEffect(() => {
     return () => {
@@ -158,8 +211,8 @@ export default function GenerateClient() {
     }
   };
 
-  const handleGenerate = () => {
-    const trimmed = productText.trim();
+  const runGeneration = (rawText: string) => {
+    const trimmed = rawText.trim();
     if (!trimmed) {
       setErrorMessage("Add a product idea or URL to generate listing content.");
       setValidation(null);
@@ -195,6 +248,10 @@ export default function GenerateClient() {
         setShowUpgradeModal(true);
       }
     }
+  };
+
+  const handleGenerate = () => {
+    runGeneration(productText);
   };
 
   const formatPositioning = (value: GeneratedContent, heading: string) => {
@@ -339,7 +396,15 @@ export default function GenerateClient() {
 
   return (
     <div className="space-y-10">
+      <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+        GEN-LOAD-DEBUG: loadId={loadId ?? "none"}
+      </div>
       <header className="space-y-3">
+        <div className="text-[11px] text-slate-500">
+          loadId: {loadId ?? "—"} · signedIn: {userId ? "true" : "false"} ·
+          found: {loadDebug.found ? "true" : "false"} · ids:{" "}
+          {loadDebug.ids.length > 0 ? loadDebug.ids.join(", ") : "—"}
+        </div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
           Generate
         </p>
@@ -372,7 +437,10 @@ export default function GenerateClient() {
                 rows={4}
                 value={productText}
                 onChange={(event) => {
-                  if (content || validation) {
+                  if (
+                    (content || validation) &&
+                    !isLoadingFromLibraryRef.current
+                  ) {
                     clearGenerated();
                   }
                   setProductText(event.target.value);
