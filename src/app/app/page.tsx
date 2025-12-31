@@ -1,5 +1,5 @@
+export const dynamic = "force-dynamic";
 import { Suspense } from "react";
-
 import DashboardClient from "./DashboardClient";
 
 export default function Page() {
