@@ -24,6 +24,12 @@ export const getSupabaseClient = () => {
     throw new Error(message);
   }
 
-  supabaseClient = createClient(url, anonKey);
+  supabaseClient = createClient(url, anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  });
   return supabaseClient;
 };
