@@ -33,6 +33,119 @@ const highCompetitionKeywords = [
   "earbuds",
   "sticker",
   "poster",
+  "led lights",
+  "led light",
+  "water bottle",
+];
+
+const phoneAccessoryKeywords = [
+  "phone case",
+  "screen protector",
+  "magsafe",
+  "magnetic phone",
+  "phone grip",
+  "phone stand",
+  "wireless charger",
+];
+
+const techAccessoryKeywords = [
+  "charger",
+  "charging cable",
+  "usb cable",
+  "adapter",
+  "power bank",
+  "dock",
+  "hub",
+  "keyboard",
+  "mouse",
+  "laptop stand",
+];
+
+const beautySkincareKeywords = [
+  "skincare",
+  "beauty",
+  "facial",
+  "serum",
+  "mask",
+  "gua sha",
+  "microcurrent",
+  "led",
+];
+
+const babyKidsKeywords = [
+  "baby",
+  "toddler",
+  "kids",
+  "infant",
+  "newborn",
+  "nursery",
+  "stroller",
+  "breastfeeding",
+];
+
+const wellnessKeywords = [
+  "wellness",
+  "massage",
+  "posture",
+  "sleep",
+  "relief",
+  "therapy",
+  "yoga",
+];
+
+const kitchenKeywords = [
+  "kitchen",
+  "cooking",
+  "pantry",
+  "food",
+  "spice",
+  "meal",
+];
+
+const officeKeywords = [
+  "office",
+  "desk",
+  "workspace",
+  "cable management",
+  "notebook",
+  "planner",
+];
+
+const homeImprovementKeywords = [
+  "tool",
+  "tools",
+  "home improvement",
+  "repair",
+  "drill",
+  "hardware",
+];
+
+const carAccessoryKeywords = [
+  "car",
+  "vehicle",
+  "auto",
+  "dashboard",
+  "windshield",
+  "mount",
+];
+
+const petSupplyKeywords = [
+  "pet",
+  "cat",
+  "dog",
+  "litter",
+  "grooming",
+  "collar",
+  "leash",
+];
+
+const fitnessKeywords = [
+  "fitness",
+  "gym",
+  "workout",
+  "training",
+  "exercise",
+  "yoga",
 ];
 
 const problemSolvingKeywords = [
@@ -51,6 +164,41 @@ const problemSolvingKeywords = [
   "storage",
   "organize",
   "organise",
+];
+
+const intentContextKeywords = [
+  "long flights",
+  "back pain",
+  "neck pain",
+  "shoulder pain",
+  "posture",
+  "sleep",
+  "relief",
+];
+
+const compoundUtilityKeywords = [
+  "2-in-1",
+  "two-in-one",
+  "combo",
+  "bundle",
+  "all-in-one",
+  "multi",
+  "dual",
+  "mount charger",
+];
+
+const nicheModifierKeywords = [
+  "for travel",
+  "for kids",
+  "for baby",
+  "for fitness",
+  "for gym",
+  "for office",
+  "for desk",
+  "for outdoor",
+  "for pets",
+  "for car",
+  "for kitchen",
 ];
 
 const nicheKeywords = [
@@ -104,6 +252,38 @@ const trendKeywords = [
   "fidget",
 ];
 
+const trendBoostKeywords = [
+  "wireless",
+  "smart",
+  "charger",
+  "skincare",
+  "beauty",
+  "baby",
+  "portable",
+];
+
+const competitiveElectronicsKeywords = [
+  "bluetooth",
+  "wireless earbuds",
+  "smartwatch",
+  "smart watch",
+  "power bank",
+  "usb cable",
+  "charging cable",
+  "phone charger",
+  "earbuds",
+];
+
+const commonPetAccessoryKeywords = [
+  "dog collar",
+  "cat collar",
+  "leash",
+  "pet toy",
+  "cat toy",
+  "dog toy",
+  "pet bowl",
+];
+
 const seasonalKeywords = [
   "holiday",
   "christmas",
@@ -134,6 +314,8 @@ const bulkyKeywords = [
   "desk",
   "sofa",
   "mattress",
+  "treadmill",
+  "patio",
 ];
 
 const electronicKeywords = [
@@ -148,6 +330,48 @@ const electronicKeywords = [
   "powered",
   "usb",
   "led",
+];
+
+const smallItemKeywords = [
+  "charger",
+  "case",
+  "tool",
+  "portable",
+  "cable",
+  "adapter",
+  "clip",
+  "mount",
+  "organizer",
+];
+
+const saturatedGenericKeywords = [
+  "phone case",
+  "water bottle",
+  "led lights",
+  "led light",
+  "t-shirt",
+  "tshirt",
+  "earbuds",
+];
+
+const returnRiskKeywords = [
+  "wearable",
+  "shoes",
+  "shoe",
+  "apparel",
+  "clothing",
+  "shirt",
+  "dress",
+  "pants",
+  "leggings",
+  "bra",
+  "jacket",
+  "skincare device",
+  "beauty device",
+  "face wand",
+  "device",
+  "wand",
+  "gadget",
 ];
 
 const baseScores: ScoreBreakdown = {
@@ -234,6 +458,11 @@ export function validateProduct(input: ValidationInput): ValidationResult {
   const scores: ScoreBreakdown = { ...baseScores };
   const warnings: string[] = [];
   const reasons: string[] = [];
+  const hasExplicitUseCase = normalized.includes(" for ");
+  const hasWithModifier = normalized.includes(" with ");
+  const hasNicheModifiers =
+    hasAny(normalized, nicheModifierKeywords) || hasExplicitUseCase;
+  const hasCommodity = hasAny(normalized, commodityKeywords);
 
   if (hasAny(normalized, problemSolvingKeywords)) {
     scores.demand += 2;
@@ -250,22 +479,224 @@ export function validateProduct(input: ValidationInput): ValidationResult {
     addUnique(reasons, "A clear niche audience makes targeting easier.");
   }
 
+  let intentStrength = 0;
+  if (hasExplicitUseCase) {
+    intentStrength += 2;
+  }
+  if (hasWithModifier) {
+    intentStrength += 1;
+  }
+  if (hasAny(normalized, problemSolvingKeywords)) {
+    intentStrength += 2;
+  }
+  if (hasAny(normalized, intentContextKeywords)) {
+    intentStrength += 2;
+  }
+  if (hasAny(normalized, compoundUtilityKeywords)) {
+    intentStrength += 2;
+  }
+  if (hasCommodity && !hasNicheModifiers) {
+    intentStrength -= 2;
+  }
+  if (normalized.split(" ").length <= 2 && !hasNicheModifiers) {
+    intentStrength -= 2;
+  }
+  intentStrength = Math.max(0, Math.min(10, intentStrength));
+  const intentBoost = intentStrength >= 6 ? 2 : intentStrength >= 3 ? 1 : 0;
+  if (intentBoost > 0) {
+    scores.demand += intentBoost;
+    scores.brandability += intentBoost;
+    addUnique(reasons, "Clear intent and use-case detail strengthen demand.");
+  } else if (hasCommodity && !hasNicheModifiers) {
+    addUnique(
+      warnings,
+      "Description feels broad; a clearer use case would improve confidence.",
+    );
+  }
+
+  const categorySignals = [
+    {
+      keywords: phoneAccessoryKeywords,
+      demand: 2,
+      brandability: 1,
+      reason: "Phone accessories show steady shopper demand.",
+    },
+    {
+      keywords: beautySkincareKeywords,
+      demand: 2,
+      brandability: 1,
+      reason: "Beauty and personal care see consistent repeat demand.",
+    },
+    {
+      keywords: kitchenKeywords,
+      demand: 1,
+      margin: 1,
+      reason: "Kitchen helpers remain popular for everyday needs.",
+    },
+    {
+      keywords: babyKidsKeywords,
+      demand: 2,
+      brandability: 1,
+      reason: "Baby products sustain recurring demand from parents.",
+    },
+    {
+      keywords: petSupplyKeywords,
+      demand: 1,
+      brandability: 1,
+      reason: "Pet supplies have reliable repeat purchases.",
+    },
+    {
+      keywords: officeKeywords,
+      demand: 1,
+      brandability: 1,
+      reason: "Office essentials stay relevant for remote and hybrid work.",
+    },
+    {
+      keywords: homeImprovementKeywords,
+      demand: 1,
+      margin: 1,
+      reason: "Tools and home improvement items keep steady interest.",
+    },
+    {
+      keywords: carAccessoryKeywords,
+      demand: 1,
+      brandability: 1,
+      reason: "Car accessories maintain steady demand from commuters.",
+    },
+    {
+      keywords: fitnessKeywords,
+      demand: 1,
+      brandability: 1,
+      reason: "Fitness and wellness categories see ongoing interest.",
+    },
+  ];
+
+  categorySignals.forEach((signal) => {
+    if (!hasAny(normalized, signal.keywords)) return;
+    if (signal.demand) scores.demand += signal.demand;
+    if (signal.brandability) scores.brandability += signal.brandability;
+    if (signal.margin) scores.margin += signal.margin;
+    addUnique(reasons, signal.reason);
+  });
+
+  if (hasAny(normalized, phoneAccessoryKeywords)) {
+    scores.demand += 1; // Additional lift for a core demand category.
+  }
+
+  if (hasAny(normalized, techAccessoryKeywords)) {
+    scores.demand += 2; // Tech add-ons are frequent repeat purchases.
+    addUnique(reasons, "Tech accessories benefit from ongoing replacement cycles.");
+  }
+
+  if (hasAny(normalized, beautySkincareKeywords)) {
+    scores.demand += 1; // Extra demand boost for repeat purchase behavior.
+  }
+
+  if (hasAny(normalized, babyKidsKeywords)) {
+    scores.demand += 1; // Extra demand boost for baby essentials.
+  }
+
+  if (hasAny(normalized, wellnessKeywords)) {
+    scores.demand += 1; // Wellness stays steady but competitive.
+  }
+
   if (hasAny(normalized, differentiationKeywords)) {
     scores.brandability += 2;
     scores.competition -= 1;
     addUnique(reasons, "Differentiation can reduce direct competition.");
   }
 
-  if (hasAny(normalized, commodityKeywords)) {
-    scores.competition += 3;
+  if (hasAny(normalized, nicheModifierKeywords)) {
+    scores.brandability += 1; // Clear modifiers sharpen positioning.
+    addUnique(reasons, "Specific use-case modifiers improve brand focus.");
+  }
+
+  let differentiation = 0;
+  if (hasAny(normalized, nicheModifierKeywords) || hasExplicitUseCase) {
+    differentiation += 3;
+  }
+  if (hasAny(normalized, problemSolvingKeywords)) {
+    differentiation += 2;
+  }
+  if (hasAny(normalized, differentiationKeywords)) {
+    differentiation += 2;
+  }
+  if (hasAny(normalized, nicheKeywords)) {
+    differentiation += 1;
+  }
+  if (hasCommodity) {
+    differentiation -= 2;
+  }
+  if (hasAny(normalized, saturatedGenericKeywords) && !hasNicheModifiers) {
+    differentiation -= 3;
+  }
+  differentiation = Math.max(0, Math.min(10, differentiation));
+
+  if (differentiation >= 6) {
+    scores.brandability += 1;
+    addUnique(reasons, "Differentiation signals support clearer positioning.");
+  }
+
+  if (
+    differentiation <= 2 &&
+    hasCommodity &&
+    !hasAny(normalized, babyKidsKeywords)
+  ) {
+    scores.competition += 1;
+    scores.brandability -= 1;
+    addUnique(
+      warnings,
+      "Looks generic—competition may be overwhelming without a clear differentiator.",
+    );
+  }
+
+  if (hasCommodity) {
+    const hasBottle = hasKeyword(normalized, "bottle");
+    const hasWaterBottle = hasKeyword(normalized, "water bottle");
+    const hasBabyContext = hasAny(normalized, babyKidsKeywords);
+    const softenedBottleCompetition =
+      hasBottle && hasBabyContext && !hasWaterBottle;
+    const competitionBump = softenedBottleCompetition ? 2 : 3;
+    scores.competition += competitionBump;
     scores.brandability -= 1;
     addUnique(reasons, "Commodity products typically face heavy competition.");
+    if (softenedBottleCompetition) {
+      addUnique(
+        reasons,
+        "Baby-specific context slightly reduces direct commodity competition.",
+      );
+    }
     addUnique(warnings, "Commodity category likely crowded with similar items.");
+  }
+
+  const hasDifferentiators =
+    hasNicheModifiers ||
+    hasAny(normalized, problemSolvingKeywords) ||
+    hasAny(normalized, differentiationKeywords);
+  if (hasAny(normalized, saturatedGenericKeywords) && !hasDifferentiators) {
+    scores.competition += 2; // Generic items get flooded quickly.
+    scores.brandability -= 2;
+    addUnique(
+      warnings,
+      "Generic commodity detected without clear niche differentiation.",
+    );
   }
 
   if (hasAny(normalized, highCompetitionKeywords)) {
     scores.competition += 2;
     addUnique(warnings, "High-competition category detected.");
+  }
+
+  if (hasAny(normalized, competitiveElectronicsKeywords)) {
+    scores.competition += 2; // Generic electronics are crowded.
+    scores.trend -= 1; // Fast-moving catalog cycles add volatility.
+    addUnique(warnings, "Generic electronics are highly competitive.");
+  }
+
+  if (hasAny(normalized, commonPetAccessoryKeywords)) {
+    scores.competition += 2; // Common pet accessories compete on price.
+    scores.trend -= 1;
+    addUnique(warnings, "Common pet accessories face heavy competition.");
   }
 
   const prices = extractPrices(normalized);
@@ -289,15 +720,18 @@ export function validateProduct(input: ValidationInput): ValidationResult {
   }
 
   let shippingSignals = 0;
+  let marginShippingPenalty = 0;
   if (hasAny(normalized, fragileKeywords)) {
-    scores.shipping += 3;
+    scores.shipping += 4;
     shippingSignals += 1;
+    marginShippingPenalty += 2;
     addUnique(warnings, "Fragile materials increase shipping risk.");
   }
 
   if (hasAny(normalized, bulkyKeywords)) {
-    scores.shipping += 3;
+    scores.shipping += 5;
     shippingSignals += 1;
+    marginShippingPenalty += 3;
     addUnique(warnings, "Large or bulky items raise fulfillment costs.");
   }
 
@@ -310,12 +744,37 @@ export function validateProduct(input: ValidationInput): ValidationResult {
   if (shippingSignals > 0) {
     addUnique(reasons, "Shipping risk appears elevated for this product.");
   }
+  if (marginShippingPenalty > 0) {
+    scores.margin -= marginShippingPenalty;
+    addUnique(
+      reasons,
+      "Bulky or fragile handling can compress margins after fulfillment costs.",
+    );
+  }
+
+  if (hasAny(normalized, returnRiskKeywords)) {
+    scores.shipping += 1;
+    addUnique(
+      warnings,
+      "Return risk may be higher for fit or expectation-sensitive items.",
+    );
+  }
+
+  if (hasAny(normalized, smallItemKeywords)) {
+    scores.shipping -= 1; // Small/light items lower shipping risk.
+    addUnique(reasons, "Compact items are typically easier to ship.");
+  }
 
   if (hasAny(normalized, trendKeywords)) {
     scores.trend -= 2;
     scores.demand += 1;
     addUnique(warnings, "Trend-driven demand can fade quickly.");
     addUnique(reasons, "Trend signals boost demand but add volatility.");
+  }
+
+  if (hasAny(normalized, trendBoostKeywords)) {
+    scores.trend += 1; // Core categories hold steady demand over time.
+    addUnique(reasons, "Category demand looks fairly stable.");
   }
 
   if (hasAny(normalized, seasonalKeywords)) {
